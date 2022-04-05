@@ -39,13 +39,11 @@ async def incr_question(state: FSMContext):
             
 
 async def decr_question(state: FSMContext):
-    current_state = await state.get_state()
-    if current_state is not None:
-        async with state.proxy() as data:
-            if data["cur_pos"] != 0:
-                data["cur_pos"] -= 1
-                data["answers"].pop()
-    if current_state == SurveyState.final.state:
+    async with state.proxy() as data:
+        if data["cur_pos"] != 0:
+            data["cur_pos"] -= 1
+            data["answers"].pop()       
+    if await state.get_state() == SurveyState.final.state:
         await SurveyState.waiting_for_answer.set()
 
 
@@ -83,8 +81,8 @@ async def get_answer(message: types.Message, state: FSMContext):
                             reply_markup=active_question.keyboard)
         else:
             await SurveyState.final.set()
-            await message.answer("Вопросы закончились :heart :heart :heart", \
-                            reply_markup=final_keyboard)
+            await message.answer("Вопросы закончились \U0001F37A\U0001F449\U0001F44C", 
+                                    reply_markup=final_keyboard)
 
 
 async def end_survey(message: types.Message, state: FSMContext):
@@ -112,7 +110,7 @@ async def cmd_interrupt_survey(message: types.Message, state: FSMContext):
 
 def register_client_handlers(dp: Dispatcher):
     dp.register_message_handler(cmd_start, commands="start", state=None)
-    dp.register_message_handler(cmd_previous, commands="previous", state="*")
+    dp.register_message_handler(cmd_previous, commands="previous", state=SurveyState)
     dp.register_message_handler(cmd_interrupt_survey, commands="interrupt", state="*")
     dp.register_message_handler(get_answer, state=SurveyState.waiting_for_answer)
     dp.register_message_handler(cmd_previous, Text(equals="Вернуться"), state=SurveyState.final)
