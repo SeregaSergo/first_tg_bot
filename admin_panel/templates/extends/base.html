@@ -1,0 +1,27 @@
+{% cache 604800 %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/static/css/style.css">
+{% endcache %}
+    <title>PyMusicBot | {% if content_title %}{{ content_title }}{% else %} Log in {% endif %}</title>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>KPMG_SURVEY_BOT</h1>
+            {% if current_user.is_authenticated %}<a href="{{ url_for('logout') }}" id="logout">Logout</a> {% endif %}
+        </header>
+        {% block content %}
+        {% endblock %}
+    </div>
+{% cache 604800 %}
+    <footer>
+        <img src="/static/img/kpmg-icon.png" alt="KPMG">
+        <a href="https://home.kpmg/ru/ru/home.html">KPMG main site</a>
+    </footer>
+</body>
+</html>
+{% endcache %}
