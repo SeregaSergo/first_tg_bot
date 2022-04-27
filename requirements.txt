@@ -1,4 +1,6 @@
-aiogram==2.11.2
+aiogram==2.14.2
 aioredis
 Flask==2.1.1
 sqlalchemy
+pyTelegramBotAPI==4.4.1
+openpyxl

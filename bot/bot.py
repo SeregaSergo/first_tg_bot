@@ -1,65 +1,30 @@
-import asyncio
-import logging
+from aiogram import executor, Dispatcher, Bot
 
-from aiogram import Bot, Dispatcher
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.types import BotCommand
-
-from config.config_reader import load_config
-from handlers.admin import register_admin_handlers
-from handlers.client import register_client_handlers
-from db_dir.dbworker import start_db
+import handlers
+import filters
+from load_all import config, bot, dp
+from menus import set_menus
 
 
-logger = logging.getLogger(__name__)
+async def on_startup(dispatcher: Dispatcher):
 
-async def set_commands(bot: Bot):
-    commands = [
-        BotCommand(command="/previous", description="Предыдущий вопрос"),
-        BotCommand(command="/interrupt", description="Закончить опрос")
-    ]
-    await bot.set_my_commands(commands)
-
-
-async def shutdown(dispatcher: Dispatcher):
-    await dispatcher.storage.close()
-    await dispatcher.storage.wait_closed()
-
-
-async def main():
-    # Парсинг файла конфигурации
-    config = load_config("config/bot.ini")
-    
-    # Инициализация БД
-    start_db()
-    
-    # Объявление и инициализация объектов бота и диспетчера
-    bot = Bot(token=config.tg_bot.token)
-    dp = Dispatcher(bot, storage=MemoryStorage())
-
-    # Настройка логирования в stdout
-    logging.basicConfig(
-        level=logging.INFO,
-        format="[%(asctime)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    logger.info("Starting bot: {bot_name}".format(bot_name = (await bot.get_me()).username))
+    # Связывание фильтров для хендлеров с диспетчером
+    filters.setup(dp)
 
     # Регистрация хэндлеров
-    register_admin_handlers(dp, config.tg_bot.admin_id)
-    register_client_handlers(dp)
+    handlers.register_all()
 
-    # Установка команд бота
-    await set_commands(bot)
+    await set_menus(bot)
 
-    # Запуск поллинга
-    await dp.skip_updates()  # пропуск накопившихся апдейтов
-    await dp.start_polling()
-    await shutdown(dp)
+    # Оповещение о запуске бота
+    await bot.send_message(config.tg_bot.admin_id, "Я запущен!")
+
+
+async def on_shutdown(dp: Dispatcher):
+    await dp.storage.close()
+    await dp.storage.wait_closed()
+    await bot.close()
 
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logger.error("Bot stopped!")
+    executor.start_polling(dp, skip_updates=True, on_shutdown=on_shutdown, on_startup=on_startup)
